@@ -1,12 +1,9 @@
-use std::io::prelude::*;
-use std::{
-    io::Result,
-    net::{TcpListener, TcpStream},
-};
+use rustline::server::serve::handle_connection;
+use std::net::TcpListener;
 
-fn main() -> Result<()> {
-    let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
-    println!("Server running on http:://127.0.0.1:8080");
+fn main() -> std::io::Result<()> {
+    let listener = TcpListener::bind("127.0.0.1:8080")?;
+    println!("Server running on http://127.0.0.1:8080");
 
     for stream in listener.incoming() {
         match stream {
@@ -16,13 +13,5 @@ fn main() -> Result<()> {
             Err(e) => eprintln!("Connection failed: {e}"),
         }
     }
-
     Ok(())
-}
-
-fn handle_connection(mut stream: TcpStream) -> Result<()> {
-    let mut buffer = [0; 512];
-    let n = stream.read(&mut buffer)?;
-    println!("Got: {}", String::from_utf8_lossy(&buffer[..n]));
-    Ok(())
-}
+} 
