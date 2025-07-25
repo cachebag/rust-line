@@ -65,6 +65,11 @@ impl Parser {
                             RequestParseError::InvalidHttpVersion(version_str.to_string())
                         })?;
 
+                        let version = format!("{major}.{minor}");
+                        if version != "1.1" && version != "1.0" {
+                            return Err(RequestParseError::InvalidHttpVersion(version));
+                        }
+
                         // validate the method type
                         let method = Method::from_method_str(method_str);
                         if !method.is_supported() {
@@ -138,5 +143,62 @@ impl fmt::Display for Parser {
             write!(f, "{}: {}\r\n", header.name, header.value)?;
         }
         write!(f, "\r\n")
+    }
+}
+
+#[cfg(test)]
+mod parser_tests {
+    use super::*;
+
+    #[test]
+    fn test_valid_req_line() {
+        let line = "GET /index.html HTTP/1.1\r\n";
+        let mut parser = Parser::new();
+        let (method, target, major, minor) = 
+            parser.extract_and_validate_request(line).unwrap();
+
+        assert_eq!(method, Method::GET);
+        assert_eq!(target, "/index.html");
+        assert_eq!(major, 1);
+        assert_eq!(minor, 1);
+    }
+
+    #[test]
+    fn test_invalid_header_length() {
+        let line = "GET /index.html\r\n"; 
+        let mut parser = Parser::new();
+
+        let err = parser.extract_and_validate_request(line).unwrap_err();
+        match err {
+            RequestParseError::InvalidHeaderLength(n) => assert_eq!(n, 2),
+            _ => panic!("Expected InvalidHeaderLength"),
+        }
+    }
+
+    #[test]
+    fn test_invalid_path() {
+        let line = "GET index.html HTTP/1.1\r\n";
+        let mut parser = Parser::new();
+
+        let err = parser.extract_and_validate_request(line).unwrap_err();
+        assert!(matches!(err, RequestParseError::InvalidReqLine));
+    }
+
+    #[test]
+    fn test_invalid_version() {
+        let line = "GET / HTTP/2.0\r\n";
+        let mut parser = Parser::new();
+
+        let err = parser.extract_and_validate_request(line).unwrap_err();
+        assert!(matches!(err, RequestParseError::InvalidHttpVersion(_)));
+    }
+
+    #[test]
+    fn test_unsupported_method() {
+        let line = "PATCH /index.html HTTP/1.1\r\n";
+        let mut parser = Parser::new();
+
+        let err = parser.extract_and_validate_request(line).unwrap_err();
+        assert!(matches!(err, RequestParseError::UnsupportedMethod(_)));
     }
 }
