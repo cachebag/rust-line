@@ -53,7 +53,7 @@ impl Response {
 impl fmt::Display for Response {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "HTTP/1.1 {} {}\r\n", self.status_code, self.reason)?;
-        
+
         for (name, value) in &self.headers {
             write!(f, "{}: {}\r\n", name, value)?;
         }
