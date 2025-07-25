@@ -1,4 +1,4 @@
-// src/error/err.rs 
+// src/error/err.rs
 
 use std::fmt;
 

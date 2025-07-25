@@ -17,14 +17,14 @@ pub enum StatusCode {
 impl StatusCode {
     pub fn reason_phrase(&self) -> &'static str {
         match self {
-            StatusCode::Ok => "OK",
-            StatusCode::BadRequest => "Bad Request",
-            StatusCode::NotFound => "Not Found",
-            StatusCode::MethodNotAllowed => "Method Not Allowed",
-            StatusCode::UriTooLong => "URI Too Long",
-            StatusCode::InternalServerError => "Internal Server Error",
-            StatusCode::NotImplemented => "Not Implemented",
-            StatusCode::HttpVersionNotSupported => "HTTP Version Not Supported",
+            StatusCode::Ok => "OK\n",
+            StatusCode::BadRequest => "Bad Request\n",
+            StatusCode::NotFound => "Not Found\n",
+            StatusCode::MethodNotAllowed => "Method Not Allowed\n",
+            StatusCode::UriTooLong => "URI Too Long\n",
+            StatusCode::InternalServerError => "Internal Server Error\n",
+            StatusCode::NotImplemented => "Not Implemented\n",
+            StatusCode::HttpVersionNotSupported => "HTTP Version Not Supported\n",
         }
     }
 }

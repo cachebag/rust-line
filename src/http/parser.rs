@@ -123,13 +123,27 @@ impl Parser {
 
         true
     }
-    
-    pub fn extract_and_validate_headers(
-        &self,
-    ) {
-        unimplemented!()
-    }
 
+    pub fn extract_and_validate_headers(&mut self, request: &str) -> Result<(), RequestParseError> {
+        let lines: Vec<&str> = request.lines().collect();
+
+        for line in lines.iter().skip(1) {
+            if line.is_empty() {
+                break;
+            }
+
+            if let Some((name, value)) = line.split_once(':') {
+                let header = Header {
+                    name: name.trim().to_string(),
+                    value: value.trim().to_string(),
+                };
+                self.headers.push(header);
+            } else {
+                return Err(RequestParseError::InvalidReqLine);
+            }
+        }
+        Ok(())
+    }
 }
 
 impl fmt::Display for Parser {
@@ -161,8 +175,7 @@ mod parser_tests {
     fn test_valid_req_line() {
         let line = "GET /index.html HTTP/1.1\r\n";
         let mut parser = Parser::new();
-        let (method, target, major, minor) = 
-            parser.extract_and_validate_request(line).unwrap();
+        let (method, target, major, minor) = parser.extract_and_validate_request(line).unwrap();
 
         assert_eq!(method, Method::GET);
         assert_eq!(target, "/index.html");
@@ -172,7 +185,7 @@ mod parser_tests {
 
     #[test]
     fn test_invalid_header_length() {
-        let line = "GET /index.html\r\n"; 
+        let line = "GET /index.html\r\n";
         let mut parser = Parser::new();
 
         let err = parser.extract_and_validate_request(line).unwrap_err();

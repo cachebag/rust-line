@@ -8,7 +8,7 @@ fn main() -> std::io::Result<()> {
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
-                handle_connection(stream)?;
+                handle_request(stream)?;
             }
             Err(e) => eprintln!("Connection failed: {e}"),
         }

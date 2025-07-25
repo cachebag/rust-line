@@ -15,13 +15,13 @@ pub fn handle_request(mut stream: TcpStream) -> Result<()> {
     match parser.extract_and_validate_request(&request_str) {
         Ok((method, path, major, minor)) => {
             println!("{method:?} {path} HTTP/{major}.{minor}");
-            let response = Response::ok("PING".to_string());
-            stream.write_all(response.as_bytes())?;
+            let response = Response::ok("Hello, World!\n".to_string());
+            stream.write_all(response.to_string().as_bytes())?;
             stream.flush()?;
         }
         Err(parse_error) => {
             eprintln!("{parse_error}");
-            let response = "HTTP/1.1 400 Bad Request\r\n\r\nBad Request";
+            let response = "HTTP/1.1 400 Bad Request\r\n\r\nBad Request\n";
             stream.write_all(response.as_bytes())?;
             stream.flush()?;
         }
