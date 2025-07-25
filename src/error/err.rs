@@ -2,7 +2,8 @@ use std::fmt;
 
 #[derive(Debug)]
 pub enum RequestParseError {
-    EmptyReqLine,
+    InvalidHeaderLength(usize),
+    InvalidReqLine,
     MissingMethod,
     MissingPath,
     MissingHttpVersion,
@@ -13,8 +14,15 @@ pub enum RequestParseError {
 impl fmt::Display for RequestParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RequestParseError::EmptyReqLine => {
-                write!(f, "Missing request.")
+            RequestParseError::InvalidHeaderLength(length) => {
+                write!(
+                    f,
+                    "{} does not match the required length of this header.",
+                    length
+                )
+            }
+            RequestParseError::InvalidReqLine => {
+                write!(f, "Invalid request.")
             }
             RequestParseError::MissingMethod => {
                 write!(f, "Missing method.")
