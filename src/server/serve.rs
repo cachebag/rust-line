@@ -1,11 +1,12 @@
 // src/server/serve.rs
+
 // use crate::error::RequestParseError;
-use crate::http::Parser;
+use crate::http::{Parser, Response};
 use std::io::Result;
 use std::io::prelude::*;
 use std::net::TcpStream;
 
-pub fn handle_connection(mut stream: TcpStream) -> Result<()> {
+pub fn handle_request(mut stream: TcpStream) -> Result<()> {
     let mut buffer = [0; 512];
     let mut parser = Parser::new();
     let n = stream.read(&mut buffer)?;
@@ -13,16 +14,23 @@ pub fn handle_connection(mut stream: TcpStream) -> Result<()> {
 
     match parser.extract_and_validate_request(&request_str) {
         Ok((method, path, major, minor)) => {
-            println!("Parsed: {method:?} {path} HTTP/{major}.{minor}");
-            // TODO: Successful requests
-            let response = "HTTP/1.1 200 OK\r\n\r\nHello, World!";
-            stream.write_all(response.as_bytes())?;
+            println!("{method:?} {path} HTTP/{major}.{minor}");
+
+            let response = match path.as_str() {
+                "/" => Response::ok("Hello, World!\n".to_string()),
+                "/ping" => Response::ok("pong\n".to_string()),
+                "/health" => Response::ok("Server is healthy\n".to_string()),
+                _ => Response::not_found(),
+            };
+
+            stream.write_all(response.to_string().as_bytes())?;
+            stream.flush()?;
         }
         Err(parse_error) => {
-            eprintln!("Parse error: {parse_error}");
-            // TODO: Error responsee
-            let response = "HTTP/1.1 400 Bad Request\r\n\r\nBad Request";
-            stream.write_all(response.as_bytes())?;
+            eprintln!("{parse_error}");
+            let response = Response::bad_request();
+            stream.write_all(response.to_string().as_bytes())?;
+            stream.flush()?;
         }
     }
 

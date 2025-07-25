@@ -1,8 +1,10 @@
+// src/error/err.rs
+
 use std::fmt;
 
 #[derive(Debug)]
 pub enum RequestParseError {
-    InvalidHeaderLength(usize),
+    InvalidFieldLength(usize),
     InvalidReqLine,
     MissingMethod,
     MissingPath,
@@ -14,7 +16,7 @@ pub enum RequestParseError {
 impl fmt::Display for RequestParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RequestParseError::InvalidHeaderLength(length) => {
+            RequestParseError::InvalidFieldLength(length) => {
                 write!(
                     f,
                     "{} does not match the required length of this header.",

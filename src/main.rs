@@ -1,4 +1,4 @@
-use rustline::server::serve::handle_connection;
+use rustline::server::serve::handle_request;
 use std::net::TcpListener;
 
 fn main() -> std::io::Result<()> {
@@ -8,7 +8,7 @@ fn main() -> std::io::Result<()> {
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
-                handle_connection(stream)?;
+                handle_request(stream)?;
             }
             Err(e) => eprintln!("Connection failed: {e}"),
         }
