@@ -1,5 +1,7 @@
 // src/http/method.rs
 
+use core::fmt;
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Method {
     GET,
@@ -30,5 +32,21 @@ impl Method {
 
     pub fn is_supported(&self) -> bool {
         !matches!(self, Method::Unknown(_))
+    }
+}
+
+impl fmt::Display for Method {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Method::GET => write!(f, "GET"),
+            Method::HEAD => write!(f, "HEAD"),
+            Method::POST => write!(f, "POST"),
+            Method::PUT => write!(f, "PUT"),
+            Method::DELETE => write!(f, "DELETE"),
+            Method::CONNECT => write!(f, "CONNECT"),
+            Method::OPTIONS => write!(f, "OPTIONS"),
+            Method::TRACE => write!(f, "TRACE"),
+            Method::Unknown(s) => write!(f, "{s}"),
+        }
     }
 }
