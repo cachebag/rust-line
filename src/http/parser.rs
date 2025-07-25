@@ -42,7 +42,7 @@ impl Parser {
 
             // if we don't get 3 items, reject it
             if parts.len() != 3 {
-                return Err(RequestParseError::InvalidHeaderLength(parts.len()));
+                return Err(RequestParseError::InvalidReqLine);
             }
 
             let method_str = parts[0];
@@ -123,6 +123,13 @@ impl Parser {
 
         true
     }
+    
+    pub fn extract_and_validate_headers(
+        &self,
+    ) {
+        unimplemented!()
+    }
+
 }
 
 impl fmt::Display for Parser {
@@ -169,10 +176,7 @@ mod parser_tests {
         let mut parser = Parser::new();
 
         let err = parser.extract_and_validate_request(line).unwrap_err();
-        match err {
-            RequestParseError::InvalidHeaderLength(n) => assert_eq!(n, 2),
-            _ => panic!("Expected InvalidHeaderLength"),
-        }
+        assert!(matches!(err, RequestParseError::InvalidReqLine));
     }
 
     #[test]

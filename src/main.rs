@@ -1,4 +1,4 @@
-use rustline::server::serve::handle_connection;
+use rustline::server::serve::handle_request;
 use std::net::TcpListener;
 
 fn main() -> std::io::Result<()> {
