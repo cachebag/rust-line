@@ -16,10 +16,14 @@ pub fn handle_request(mut stream: TcpStream) -> Result<()> {
         Ok((method, path, major, minor)) => {
             println!("{method:?} {path} HTTP/{major}.{minor}");
 
-            let response = match path.as_str() {
-                "/" => Response::ok("Hello, World!\n".to_string()),
-                "/ping" => Response::ok("pong\n".to_string()),
-                "/health" => Response::ok("Server is healthy\n".to_string()),
+            // default behavior for now will simply reject any response that isn't plain text 
+            // or just return the plain text
+            let response = match path.strip_prefix('/') {
+                Some(rest) => {
+                    let mut text = String::from(rest);
+                    text.push('\n');
+                    Response::ok(text)
+                }
                 _ => Response::not_found(),
             };
 

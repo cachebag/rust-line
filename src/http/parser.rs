@@ -218,4 +218,23 @@ mod parser_tests {
         let err = parser.extract_and_validate_request(line).unwrap_err();
         assert!(matches!(err, RequestParseError::UnsupportedMethod(_)));
     }
+
+    #[test]
+    fn test_valid_headers() {
+        let request = "GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: test\r\n\r\n";
+        let mut parser = Parser::new();
+
+        let (method, target, major, minor) = parser.extract_and_validate_request(request).unwrap();
+        assert_eq!(method, Method::GET);
+        assert_eq!(target, "/index.html");
+        assert_eq!(major, 1);
+        assert_eq!(minor, 1);
+
+        parser.extract_and_validate_headers(request).unwrap();
+        assert_eq!(parser.headers.len(), 2);
+        assert_eq!(parser.headers[0].name, "Host");
+        assert_eq!(parser.headers[0].value, "example.com");
+        assert_eq!(parser.headers[1].name, "User-Agent");
+        assert_eq!(parser.headers[1].value, "test");
+    }
 }
