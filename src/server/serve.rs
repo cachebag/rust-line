@@ -31,61 +31,78 @@ impl Server {
     }
 
     pub async fn handle_request(&self, mut stream: TcpStream) -> Result<()> {
-        let mut buffer = [0; 512];
+        let mut buffer = [0; 8192];
         let mut parser = Parser::new();
-        let n = stream.read(&mut buffer).await?;
-        let request_str = String::from_utf8_lossy(&buffer[..n]);
 
-        match parser.extract_and_validate_request(&request_str) {
-            Ok((method, path, major, minor, headers)) => {
-                println!("{method:?} {path} HTTP/{major}.{minor}");
-                println!("\n");
-                let response = match path.strip_prefix('/') {
-                    Some(rest) => {
-                        if let Some(arg) = rest.strip_prefix("echo/") {
-                            if arg.is_empty() {
-                                Response::bad_request()
+        loop {
+            let n = stream.read(&mut buffer).await?;
+            if n == 0 {
+                break;
+            }
+
+            let request_str = String::from_utf8_lossy(&buffer[..n]);
+
+            match parser.extract_and_validate_request(&request_str) {
+                Ok((method, path, major, minor, headers)) => {
+                    println!("{method:?} {path} HTTP/{major}.{minor}");
+                    println!("\n");
+                    let response = match path.strip_prefix('/') {
+                        Some(rest) => {
+                            if let Some(arg) = rest.strip_prefix("echo/") {
+                                if arg.is_empty() {
+                                    Response::bad_request()
+                                } else {
+                                    let mut text = String::from(arg);
+                                    text.push('\n');
+                                    Response::ok(text)
+                                }
                             } else {
-                                let mut text = String::from(arg);
-                                text.push('\n');
-                                Response::ok(text)
-                            }
-                        } else {
-                            match rest {
-                                "ping" => Response::ok("PONG\n".to_string()),
-                                "uptime" => self.handle_uptime(),
-                                "echo" => Response::bad_request(),
-                                "user-agent" => {
-                                    let ua = headers
-                                        .get("User-Agent")
-                                        .map(|s| s.as_str())
-                                        .unwrap_or("(none)");
+                                match rest {
+                                    "ping" => Response::ok("PONG\n".to_string()),
+                                    "uptime" => self.handle_uptime(),
+                                    "echo" => Response::bad_request(),
+                                    "user-agent" => {
+                                        let ua = headers
+                                            .get("User-Agent")
+                                            .map(|s| s.as_str())
+                                            .unwrap_or("(none)");
 
-                                    Response::ok(format!("{}\n", ua))
-                                }
-                                "headers" => {
-                                    let mut body = String::new();
-                                    for (k, v) in &headers {
-                                        body.push_str(&format!("{}: {}\n", k, v));
+                                        Response::ok(format!("{}\n", ua))
                                     }
-                                    Response::ok(body)
+                                    "headers" => {
+                                        let mut body = String::new();
+                                        for (k, v) in &headers {
+                                            body.push_str(&format!("{}: {}\n", k, v));
+                                        }
+                                        Response::ok(body)
+                                    }
+                                    _ => Response::not_found(),
                                 }
-                                _ => Response::not_found(),
                             }
                         }
-                    }
-                    _ => Response::not_found(),
-                };
+                        _ => Response::not_found(),
+                    };
+    
+                    stream.write_all(response.to_string().as_bytes()).await?;
+                    stream.flush().await?;
 
-                stream.write_all(response.to_string().as_bytes()).await?;
-                stream.flush().await?;
+                    if headers
+                        .get("Connection")
+                        .map(|v| v.eq_ignore_ascii_case("close"))
+                        .unwrap_or(false)
+                    {
+                        break;
+                    }
+                }
+                Err(_) => {
+                    let response = Response::bad_request();
+                    stream.write_all(response.to_string().as_bytes()).await?;
+                    stream.flush().await?;
+                    break;
+                }
             }
-            Err(parse_error) => {
-                eprintln!("{parse_error}");
-                let response = Response::bad_request();
-                stream.write_all(response.to_string().as_bytes()).await?;
-                stream.flush().await?;
-            }
+
+            parser = Parser::new();
         }
 
         Ok(())

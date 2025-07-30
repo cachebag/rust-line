@@ -1,4 +1,5 @@
 use rustline::server::runtime::run;
+use std::time::Duration;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpStream,
@@ -9,9 +10,10 @@ async fn integration_load_test() {
     tokio::spawn(async {
         run("127.0.0.1:8080".to_string()).await.unwrap();
     });
+    tokio::time::sleep(Duration::from_secs(1)).await;
 
     let addr = "127.0.0.1:8080";
-    let total_connections = 4500;
+    let total_connections = 10_000;
 
     let mut handles = Vec::with_capacity(total_connections);
 
