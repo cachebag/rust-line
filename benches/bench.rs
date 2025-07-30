@@ -11,7 +11,7 @@ fn http_benchmark(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("http_server");
 
-    for connections in [100, 500, 1000] {
+    for connections in [100, 500, 1000, 2500, 5000] {
         group.bench_with_input(
             BenchmarkId::new("concurrent_requests", connections),
             &connections,
