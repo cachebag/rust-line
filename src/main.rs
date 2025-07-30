@@ -1,14 +1,18 @@
-use rustline::server::serve::handle_request;
+use rustline::server::serve::Server;
 use std::net::TcpListener;
 
 fn main() -> std::io::Result<()> {
-    let listener = TcpListener::bind("127.0.0.1:8080")?;
-    println!("Server running on http://127.0.0.1:8080");
+    let hostname = "127.0.0.1";
+    let port = 8080;
+    let addr = format!("{}:{}", hostname, port);
+    let listener = TcpListener::bind(&addr)?;
+    let server = Server::new();
+    println!("Listening on http://127.0.0.1:8080\n");
 
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
-                handle_request(stream)?;
+                server.handle_request(stream)?;
             }
             Err(e) => eprintln!("Connection failed: {e}"),
         }

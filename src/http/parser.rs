@@ -1,19 +1,16 @@
 // src/http/parser.rs
 
 use crate::{error::RequestParseError, http::Method};
-use std::fmt;
+use std::{collections::{HashMap}, fmt};
 
-pub struct Header {
-    pub name: String,
-    pub value: String,
-}
+type Request = (Method, String, u8, u8, HashMap<String, String>);
 
 pub struct Parser {
     pub method: Method,
     pub target: String,
     pub version_major: u8,
     pub version_minor: u8,
-    pub headers: Vec<Header>,
+    pub headers: HashMap<String, String>,
 }
 
 impl Default for Parser {
@@ -29,14 +26,14 @@ impl Parser {
             target: String::new(),
             version_major: 0,
             version_minor: 0,
-            headers: Vec::new(),
+            headers: HashMap::new(),
         }
     }
 
     pub fn extract_and_validate_request(
         &mut self,
         request: &str,
-    ) -> Result<(Method, String, u8, u8), RequestParseError> {
+    ) -> Result<Request, RequestParseError> {
         if let Some((req_line, _)) = request.split_once("\r\n") {
             let parts: Vec<&str> = req_line.split_whitespace().collect();
 
@@ -76,7 +73,8 @@ impl Parser {
                             return Err(RequestParseError::UnsupportedMethod(method.to_string()));
                         }
 
-                        Ok((method, target.to_string(), major, minor))
+                        self.extract_and_validate_headers(request)?;
+                        Ok((method, target.to_string(), major, minor, self.headers.clone()))
                     } else {
                         Err(RequestParseError::InvalidHttpVersion(
                             version_str.to_string(),
@@ -133,11 +131,7 @@ impl Parser {
             }
 
             if let Some((name, value)) = line.split_once(':') {
-                let header = Header {
-                    name: name.trim().to_string(),
-                    value: value.trim().to_string(),
-                };
-                self.headers.push(header);
+                self.headers.insert(name.trim().to_string(), value.trim().to_string());
             } else {
                 return Err(RequestParseError::InvalidReqLine);
             }
@@ -160,11 +154,16 @@ impl fmt::Display for Parser {
             f,
             "{method:?} {target} HTTP/{version_major}.{version_minor}\r\n"
         )?;
-        for header in headers {
-            write!(f, "{}: {}\r\n", header.name, header.value)?;
+        let mut keys: Vec<_> = headers.keys().collect();
+        keys.sort();
+        for key_ref in keys {
+            let key = key_ref;
+                if let Some(value) = headers.get(key) {
+                    write!(f, "{}: {}\r\n", key, value)?;
+                }
+            }   
+            write!(f, "\r\n")
         }
-        write!(f, "\r\n")
-    }
 }
 
 #[cfg(test)]
@@ -173,14 +172,18 @@ mod parser_tests {
 
     #[test]
     fn test_valid_req_line() {
-        let line = "GET /index.html HTTP/1.1\r\n";
+        let line = "GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: test\r\n\r\n";
         let mut parser = Parser::new();
-        let (method, target, major, minor) = parser.extract_and_validate_request(line).unwrap();
+        let (method, target, major, minor, headers) = parser.extract_and_validate_request(line).unwrap();
 
         assert_eq!(method, Method::GET);
         assert_eq!(target, "/index.html");
         assert_eq!(major, 1);
         assert_eq!(minor, 1);
+        assert_eq!(headers.len(), 2);
+        assert_eq!(headers.get("Host").unwrap(), "example.com");
+        assert_eq!(headers.get("User-Agent").unwrap(), "test");
+        
     }
 
     #[test]
@@ -224,17 +227,14 @@ mod parser_tests {
         let request = "GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: test\r\n\r\n";
         let mut parser = Parser::new();
 
-        let (method, target, major, minor) = parser.extract_and_validate_request(request).unwrap();
+        let (method, target, major, minor, headers) = parser.extract_and_validate_request(request).unwrap();
         assert_eq!(method, Method::GET);
         assert_eq!(target, "/index.html");
         assert_eq!(major, 1);
         assert_eq!(minor, 1);
 
-        parser.extract_and_validate_headers(request).unwrap();
-        assert_eq!(parser.headers.len(), 2);
-        assert_eq!(parser.headers[0].name, "Host");
-        assert_eq!(parser.headers[0].value, "example.com");
-        assert_eq!(parser.headers[1].name, "User-Agent");
-        assert_eq!(parser.headers[1].value, "test");
+        assert_eq!(headers.len(), 2);
+        assert_eq!(headers.get("Host").unwrap(), "example.com");
+        assert_eq!(headers.get("User-Agent").unwrap(), "test");
     }
 }

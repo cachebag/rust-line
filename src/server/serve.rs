@@ -5,38 +5,85 @@ use crate::http::{Parser, Response};
 use std::io::Result;
 use std::io::prelude::*;
 use std::net::TcpStream;
+use std::time::Instant;
 
-pub fn handle_request(mut stream: TcpStream) -> Result<()> {
-    let mut buffer = [0; 512];
-    let mut parser = Parser::new();
-    let n = stream.read(&mut buffer)?;
-    let request_str = String::from_utf8_lossy(&buffer[..n]);
+pub struct Server {
+    pub start_time: Instant,
+}
 
-    match parser.extract_and_validate_request(&request_str) {
-        Ok((method, path, major, minor)) => {
-            println!("{method:?} {path} HTTP/{major}.{minor}");
+impl Default for Server {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
-            // default behavior for now will simply reject any response that isn't plain text 
-            // or just return the plain text
-            let response = match path.strip_prefix('/') {
-                Some(rest) => {
-                    let mut text = String::from(rest);
-                    text.push('\n');
-                    Response::ok(text)
-                }
-                _ => Response::not_found(),
-            };
-
-            stream.write_all(response.to_string().as_bytes())?;
-            stream.flush()?;
-        }
-        Err(parse_error) => {
-            eprintln!("{parse_error}");
-            let response = Response::bad_request();
-            stream.write_all(response.to_string().as_bytes())?;
-            stream.flush()?;
+impl Server {
+    pub fn new() -> Self {
+        Self {
+            start_time: Instant::now(),
         }
     }
 
-    Ok(())
+    fn handle_uptime(&self) -> Response {
+        let uptime = self.start_time.elapsed();
+        Response::ok(format!("Server Uptime {:?}\n", uptime))
+    }
+
+
+    pub fn handle_request(&self, mut stream: TcpStream) -> Result<()> {
+        let mut buffer = [0; 512];
+        let mut parser = Parser::new();
+        let n = stream.read(&mut buffer)?;
+        let request_str = String::from_utf8_lossy(&buffer[..n]);
+
+        match parser.extract_and_validate_request(&request_str) {
+            Ok((method, path, major, minor, headers)) => {
+                println!("{method:?} {path} HTTP/{major}.{minor}");
+                for (k, v) in &headers {
+                    println!("{}: {}", k, v);
+                }
+                println!("\n");
+                let response = match path.strip_prefix('/') {
+                    Some(rest) => {
+                        if let Some(arg) = rest.strip_prefix("echo/") {
+                            if arg.is_empty() {
+                                Response::bad_request()
+                            } else {
+                                let mut text = String::from(arg);
+                                text.push('\n');
+                                Response::ok(text)
+                            }
+                        } else {
+                            match rest {
+                                "ping" => Response::ok("PONG\n".to_string()),
+                                "uptime" => self.handle_uptime(),
+                                "echo" => Response::bad_request(),
+                                "user-agent" => {
+                                    let ua = headers
+                                        .get("User-Agent")
+                                        .map(|s| s.as_str())
+                                        .unwrap_or("(none)");
+
+                                    Response::ok(format!("User-Agent: {}\n", ua))
+                                }
+                                _ => Response::not_found(),
+                            }
+                        }
+                    }
+                    _ => Response::not_found(),
+                };
+
+                stream.write_all(response.to_string().as_bytes())?;
+                stream.flush()?;
+            }
+            Err(parse_error) => {
+                eprintln!("{parse_error}");
+                let response = Response::bad_request();
+                stream.write_all(response.to_string().as_bytes())?;
+                stream.flush()?;
+            }
+        }
+
+        Ok(())
+    }
 }
