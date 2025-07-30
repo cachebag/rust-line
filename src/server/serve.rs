@@ -3,9 +3,9 @@
 // use crate::error::RequestParseError;
 use crate::http::{Parser, Response};
 use std::io::Result;
-use tokio::net::TcpStream;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use std::time::Instant;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpStream;
 
 #[derive(Clone)]
 pub struct Server {
