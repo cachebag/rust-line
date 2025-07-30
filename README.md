@@ -8,16 +8,36 @@ A minimal HTTP server built from scratch in Rust
 - `GET /echo/<text>` – echoes `<text>` back.
 - `GET /user-agent` – returns the `User-Agent` header from the request.
 
+## Performance
+`perf.sh` will use `wrk` to run a performance test on the server. It runs 100 connections on 8 threads.
+```bash
+chmod +x perf.sh
+./perf.sh
+```
+#### Current Benchmarks (may vary based on your machine's specs):
+<img width="514" height="346" alt="image" src="https://github.com/user-attachments/assets/a8f3567e-0b1b-4cf6-abc1-c24aba776dad" />
+
+###### **Device Specs**: 
+<img width="625" height="531" alt="image" src="https://github.com/user-attachments/assets/c44c6a65-9c34-406b-b37d-25faa3e5a338" />
+
 ## Run
 
 ```bash
-cargo run
+cargo run --release
 ````
 
-## Test
+## Test (WIP)
 
-To run tests:
+**Integration Tests**
+```bash
+cargo test --test load_test -- --nocapture
+```
+**Unit Tests**
+```bash
+cargo test --lib
+```
 
+**Everything**
 ```bash
 cargo test
 ```
