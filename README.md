@@ -1,4 +1,4 @@
-# Rustline
+# rust-line
 
 A minimal HTTP server built from scratch in Rust
 
