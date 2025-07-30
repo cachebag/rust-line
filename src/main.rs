@@ -1,21 +1,23 @@
 use rustline::server::serve::Server;
-use std::net::TcpListener;
+use tokio::net::TcpListener;
 
-fn main() -> std::io::Result<()> {
+#[tokio::main]
+async fn main() -> std::io::Result<()> {
     let hostname = "127.0.0.1";
     let port = 8080;
     let addr = format!("{}:{}", hostname, port);
-    let listener = TcpListener::bind(&addr)?;
+    let listener = TcpListener::bind(&addr).await?;
     let server = Server::new();
     println!("Listening on http://127.0.0.1:8080\n");
 
-    for stream in listener.incoming() {
-        match stream {
-            Ok(stream) => {
-                server.handle_request(stream)?;
+    loop {
+        let (stream, _) = listener.accept().await?;
+        let server = server.clone();
+        tokio::spawn(async move {
+            if let Err(e) = server.handle_request(stream).await {
+                eprintln!("Error: {}", e);
             }
-            Err(e) => eprintln!("Connection failed: {e}"),
-        }
+        });
     }
-    Ok(())
+
 }
