@@ -29,7 +29,6 @@ impl Server {
         Response::ok(format!("Server Uptime {:?}\n", uptime))
     }
 
-
     pub fn handle_request(&self, mut stream: TcpStream) -> Result<()> {
         let mut buffer = [0; 512];
         let mut parser = Parser::new();
@@ -39,9 +38,6 @@ impl Server {
         match parser.extract_and_validate_request(&request_str) {
             Ok((method, path, major, minor, headers)) => {
                 println!("{method:?} {path} HTTP/{major}.{minor}");
-                for (k, v) in &headers {
-                    println!("{}: {}", k, v);
-                }
                 println!("\n");
                 let response = match path.strip_prefix('/') {
                     Some(rest) => {
@@ -64,7 +60,14 @@ impl Server {
                                         .map(|s| s.as_str())
                                         .unwrap_or("(none)");
 
-                                    Response::ok(format!("User-Agent: {}\n", ua))
+                                    Response::ok(format!("{}\n", ua))
+                                }
+                                "headers" => {
+                                    let mut body = String::new();
+                                    for (k, v) in &headers {
+                                        body.push_str(&format!("{}: {}\n", k, v));
+                                    }
+                                    Response::ok(body)
                                 }
                                 _ => Response::not_found(),
                             }

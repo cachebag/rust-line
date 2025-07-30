@@ -1,7 +1,7 @@
 // src/http/parser.rs
 
 use crate::{error::RequestParseError, http::Method};
-use std::{collections::{HashMap}, fmt};
+use std::{collections::HashMap, fmt};
 
 type Request = (Method, String, u8, u8, HashMap<String, String>);
 
@@ -74,7 +74,13 @@ impl Parser {
                         }
 
                         self.extract_and_validate_headers(request)?;
-                        Ok((method, target.to_string(), major, minor, self.headers.clone()))
+                        Ok((
+                            method,
+                            target.to_string(),
+                            major,
+                            minor,
+                            self.headers.clone(),
+                        ))
                     } else {
                         Err(RequestParseError::InvalidHttpVersion(
                             version_str.to_string(),
@@ -131,7 +137,8 @@ impl Parser {
             }
 
             if let Some((name, value)) = line.split_once(':') {
-                self.headers.insert(name.trim().to_string(), value.trim().to_string());
+                self.headers
+                    .insert(name.trim().to_string(), value.trim().to_string());
             } else {
                 return Err(RequestParseError::InvalidReqLine);
             }
@@ -158,12 +165,12 @@ impl fmt::Display for Parser {
         keys.sort();
         for key_ref in keys {
             let key = key_ref;
-                if let Some(value) = headers.get(key) {
-                    write!(f, "{}: {}\r\n", key, value)?;
-                }
-            }   
-            write!(f, "\r\n")
+            if let Some(value) = headers.get(key) {
+                write!(f, "{}: {}\r\n", key, value)?;
+            }
         }
+        write!(f, "\r\n")
+    }
 }
 
 #[cfg(test)]
@@ -174,7 +181,8 @@ mod parser_tests {
     fn test_valid_req_line() {
         let line = "GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: test\r\n\r\n";
         let mut parser = Parser::new();
-        let (method, target, major, minor, headers) = parser.extract_and_validate_request(line).unwrap();
+        let (method, target, major, minor, headers) =
+            parser.extract_and_validate_request(line).unwrap();
 
         assert_eq!(method, Method::GET);
         assert_eq!(target, "/index.html");
@@ -183,7 +191,6 @@ mod parser_tests {
         assert_eq!(headers.len(), 2);
         assert_eq!(headers.get("Host").unwrap(), "example.com");
         assert_eq!(headers.get("User-Agent").unwrap(), "test");
-        
     }
 
     #[test]
@@ -227,7 +234,8 @@ mod parser_tests {
         let request = "GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: test\r\n\r\n";
         let mut parser = Parser::new();
 
-        let (method, target, major, minor, headers) = parser.extract_and_validate_request(request).unwrap();
+        let (method, target, major, minor, headers) =
+            parser.extract_and_validate_request(request).unwrap();
         assert_eq!(method, Method::GET);
         assert_eq!(target, "/index.html");
         assert_eq!(major, 1);
