@@ -82,7 +82,7 @@ impl Server {
                         }
                         _ => Response::not_found(),
                     };
-    
+
                     stream.write_all(response.to_string().as_bytes()).await?;
                     stream.flush().await?;
 
