@@ -3,10 +3,11 @@
 // use crate::error::RequestParseError;
 use crate::http::{Parser, Response};
 use std::io::Result;
-use std::io::prelude::*;
-use std::net::TcpStream;
 use std::time::Instant;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpStream;
 
+#[derive(Clone)]
 pub struct Server {
     pub start_time: Instant,
 }
@@ -29,19 +30,15 @@ impl Server {
         Response::ok(format!("Server Uptime {:?}\n", uptime))
     }
 
-
-    pub fn handle_request(&self, mut stream: TcpStream) -> Result<()> {
+    pub async fn handle_request(&self, mut stream: TcpStream) -> Result<()> {
         let mut buffer = [0; 512];
         let mut parser = Parser::new();
-        let n = stream.read(&mut buffer)?;
+        let n = stream.read(&mut buffer).await?;
         let request_str = String::from_utf8_lossy(&buffer[..n]);
 
         match parser.extract_and_validate_request(&request_str) {
             Ok((method, path, major, minor, headers)) => {
                 println!("{method:?} {path} HTTP/{major}.{minor}");
-                for (k, v) in &headers {
-                    println!("{}: {}", k, v);
-                }
                 println!("\n");
                 let response = match path.strip_prefix('/') {
                     Some(rest) => {
@@ -64,7 +61,14 @@ impl Server {
                                         .map(|s| s.as_str())
                                         .unwrap_or("(none)");
 
-                                    Response::ok(format!("User-Agent: {}\n", ua))
+                                    Response::ok(format!("{}\n", ua))
+                                }
+                                "headers" => {
+                                    let mut body = String::new();
+                                    for (k, v) in &headers {
+                                        body.push_str(&format!("{}: {}\n", k, v));
+                                    }
+                                    Response::ok(body)
                                 }
                                 _ => Response::not_found(),
                             }
@@ -73,14 +77,14 @@ impl Server {
                     _ => Response::not_found(),
                 };
 
-                stream.write_all(response.to_string().as_bytes())?;
-                stream.flush()?;
+                stream.write_all(response.to_string().as_bytes()).await?;
+                stream.flush().await?;
             }
             Err(parse_error) => {
                 eprintln!("{parse_error}");
                 let response = Response::bad_request();
-                stream.write_all(response.to_string().as_bytes())?;
-                stream.flush()?;
+                stream.write_all(response.to_string().as_bytes()).await?;
+                stream.flush().await?;
             }
         }
 
