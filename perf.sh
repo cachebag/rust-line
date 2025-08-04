@@ -5,8 +5,8 @@ set -e
 PORT=8080
 ADDR="127.0.0.1:$PORT"
 DURATION=15s
-CONNECTIONS=100
-THREADS=8
+CONNECTIONS=250
+THREADS=10
 URL="http://$ADDR/ping"
 BINARY=target/release/rustline
 

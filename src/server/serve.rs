@@ -6,10 +6,12 @@ use std::io::Result;
 use std::time::Instant;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
+use std::path::Path;
 
 #[derive(Clone)]
 pub struct Server {
     pub start_time: Instant,
+    directory: Option<String>,
 }
 
 impl Default for Server {
@@ -22,6 +24,14 @@ impl Server {
     pub fn new() -> Self {
         Self {
             start_time: Instant::now(),
+            directory: None,
+        }
+    }
+
+    pub fn new_with_directory(dir: String) -> Self {
+        Self {
+            start_time: Instant::now(),
+            directory: Some(dir),
         }
     }
 
@@ -76,13 +86,17 @@ impl Server {
                                         }
                                         Response::ok(body)
                                     }
+                                    path if path.starts_with("files/") => {
+                                        let file_path = path.strip_prefix("files/").unwrap_or("");
+                                        self.handle_file_request(file_path).await
+                                    }
                                     _ => Response::not_found(),
                                 }
                             }
                         }
                         _ => Response::not_found(),
                     };
-    
+
                     stream.write_all(response.to_string().as_bytes()).await?;
                     stream.flush().await?;
 
@@ -106,5 +120,27 @@ impl Server {
         }
 
         Ok(())
+    }
+
+    pub async fn handle_file_request(&self, file_path: &str) -> Response {
+        let base_dir = self.directory.as_deref().unwrap_or(".");
+        let full_path = Path::new(base_dir).join(file_path);
+
+        if file_path.contains("..") {
+            return Response::bad_request();
+        }
+
+        match tokio::fs::read_to_string(&full_path).await {
+            Ok(contents) => {
+                // println!("File contents: {contents}")
+                Response::ok(contents)
+                    .content_type("application/octet-stream")
+            }
+            Err(e) => {
+                eprintln!("Failed to read file: {e}");
+                Response::not_found()
+            }
+        }
+    
     }
 }
