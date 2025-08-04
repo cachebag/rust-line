@@ -7,6 +7,7 @@ A minimal HTTP server built from scratch in Rust
 - `GET /uptime` – returns server uptime.
 - `GET /echo/<text>` – echoes `<text>` back.
 - `GET /user-agent` – returns the `User-Agent` header from the request.
+- `GET /files` - Returns content of a specified file
 
 ## Performance (WIP)
 `perf.sh` will use `wrk` to run a performance test on the server. It runs 100 connections on 8 threads.
@@ -26,8 +27,19 @@ chmod +x perf.sh
 
 ## Run
 
+No directory specified
 ```bash
-cargo run --release
+cargo run --release -- ns 
+````
+
+Set cwd
+```bash
+cargo run --release -- directory /path/to/dir
+````
+
+Default cwd to `.`
+```bash
+cargo run --release -- directory 
 ````
 
 ## Test (WIP)
