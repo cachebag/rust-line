@@ -6,10 +6,10 @@ use std::error::Error;
 const USAGE: &str = r#"
 USAGE: cargo run <command> [args]
 
-Options: 
-        ns                 Run server with no directory specified
-        directory <DIR>    File serving directory (default: .)
-        -h, help           Show This help message
+Commands: 
+        ns [PORT]                Run server with no directory specified
+        dir <DIR> [PORT]         File serving directory (default: .)
+        -h, help                 Show This help message
 "#;
 
 macro_rules! run_server {
@@ -28,7 +28,7 @@ macro_rules! run_server {
     }};
 }
 
-pub async fn run(addr: String) -> Result<(), Box<dyn Error>> {
+pub async fn run() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
@@ -36,19 +36,29 @@ pub async fn run(addr: String) -> Result<(), Box<dyn Error>> {
         std::process::exit(1);
     }
 
+    let mut port = "8080".to_string(); // default port 
+
     match args[1].as_str() {
-        "directory" => {
+        "dir" | "directory" => {
+            if args.len() >= 4 {
+                port = args[3].clone();
+            }
             let dir = if args.len() >= 3 {
                 args[2].clone()
             } else {
                 ".".to_string()
             };
+            let addr = format!("127.0.0.1:{port}");
             let server = Server::new_with_directory(dir.clone());
             let label = format!("In directory: {dir}");
             run_server!(server, addr, label);
         }
 
         "ns" => {
+            if args.len() >= 3 {
+                port = args[2].clone();
+            }
+            let addr = format!("127.0.0.1:{port}");
             let server = Server::new();
             let label = String::from("Serving with no specified directory");
             run_server!(server, addr, label);
