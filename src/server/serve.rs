@@ -1,8 +1,8 @@
 // src/server/serve.rs
 
 // use crate::error::RequestParseError;
-use crate::http::{Parser, Response};
-use std::io::Result;
+use crate::http::{Parser, Response, Method};
+use std::{io::Result};
 use std::time::Instant;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
@@ -37,7 +37,7 @@ impl Server {
 
     fn handle_uptime(&self) -> Response {
         let uptime = self.start_time.elapsed();
-        Response::ok(format!("Server Uptime {:?}\n", uptime))
+        Response::ok(200, format!("Server Uptime {:?}\n", uptime))
     }
 
     pub async fn handle_request(&self, mut stream: TcpStream) -> Result<()> {
@@ -64,11 +64,11 @@ impl Server {
                                 } else {
                                     let mut text = String::from(arg);
                                     text.push('\n');
-                                    Response::ok(text)
+                                    Response::ok(200,text)
                                 }
                             } else {
                                 match rest {
-                                    "ping" => Response::ok("PONG\n".to_string()),
+                                    "ping" => Response::ok(200, "PONG\n".to_string()),
                                     "uptime" => self.handle_uptime(),
                                     "echo" => Response::bad_request(),
                                     "user-agent" => {
@@ -77,18 +77,24 @@ impl Server {
                                             .map(|s| s.as_str())
                                             .unwrap_or("(none)");
 
-                                        Response::ok(format!("{}\n", ua))
+                                        Response::ok(200, format!("{}\n", ua))
                                     }
                                     "headers" => {
                                         let mut body = String::new();
                                         for (k, v) in &headers {
                                             body.push_str(&format!("{}: {}\n", k, v));
                                         }
-                                        Response::ok(body)
+                                        Response::ok(200, body)
                                     }
                                     path if path.starts_with("files/") => {
                                         let file_path = path.strip_prefix("files/").unwrap_or("");
-                                        self.handle_file_request(file_path).await
+                                        let body = String::new();
+
+                                        match method {
+                                            Method::GET => self.read_file(file_path).await,
+                                            Method::POST => self.create_file(file_path, body).await,
+                                            _ => Response::not_found(),
+                                        }
                                     }
                                     _ => Response::not_found(),
                                 }
@@ -122,7 +128,7 @@ impl Server {
         Ok(())
     }
 
-    pub async fn handle_file_request(&self, file_path: &str) -> Response {
+    pub async fn read_file(&self, file_path: &str) -> Response {
         let base_dir = self.directory.as_deref().unwrap_or(".");
         let full_path = Path::new(base_dir).join(file_path);
 
@@ -133,7 +139,7 @@ impl Server {
         match tokio::fs::read_to_string(&full_path).await {
             Ok(contents) => {
                 // println!("File contents: {contents}")
-                Response::ok(contents)
+                Response::ok(200, contents)
                     .content_type("application/octet-stream")
             }
             Err(e) => {
@@ -142,5 +148,24 @@ impl Server {
             }
         }
     
+    }
+
+    pub async fn create_file(&self, file_path: &str,  body: String) -> Response {
+        let base_dir = self.directory.as_deref().unwrap_or(".");
+        let full_path = Path::new(base_dir).join(file_path);
+
+        match tokio::fs::write(&full_path, &body).await {
+            Ok(()) => {
+                let len_str = body.len().to_string();
+                let mut resp = Response::ok(201, body);
+                resp.set_header("Content-Length", &len_str);
+                resp.set_header("Content-Type", "application/octet-stream");
+                resp
+            }
+            Err(e) => {
+                eprintln!("Failed to write to file: {e}");
+                Response::not_found()
+            }
+        }
     }
 }
