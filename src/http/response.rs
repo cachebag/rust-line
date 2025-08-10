@@ -11,7 +11,6 @@ pub struct Response {
 }
 
 impl Response {
-
     pub fn with_status(status_code: u16, reason: &str, body: String) -> Self {
         let headers = vec![
             ("Content-type".to_string(), "text/plain".to_string()),
@@ -26,16 +25,20 @@ impl Response {
         }
     }
 
-    pub fn ok(body: String) -> Self {
-        Self::with_status(200, "OK", body)
+    pub fn ok(status_code: u16, body: String) -> Self {
+        Self::with_status(status_code, "OK", body)
     }
 
     pub fn not_found() -> Self {
-        Self::with_status(404, "Not Found", String::new())    
+        Self::with_status(404, "Not Found", String::new())
     }
 
     pub fn bad_request() -> Self {
         Self::with_status(400, "Bad Request", String::new())
+    }
+
+    pub fn unsupported_method() -> Self {
+        Self::with_status(405, "Unsupported Method", String::new())
     }
 
     pub fn internal_error() -> Self {
@@ -43,7 +46,11 @@ impl Response {
     }
 
     pub fn set_header(&mut self, key: &str, value: &str) {
-        if let Some(existing) = self.headers.iter_mut().find(|(k, _)| k.eq_ignore_ascii_case(key)) {
+        if let Some(existing) = self
+            .headers
+            .iter_mut()
+            .find(|(k, _)| k.eq_ignore_ascii_case(key))
+        {
             existing.1 = value.to_string();
         } else {
             self.headers.push((key.to_string(), value.to_string()));
@@ -52,7 +59,7 @@ impl Response {
 
     pub fn content_type(mut self, value: &str) -> Self {
         self.set_header("Content-Type", value);
-        self 
+        self
     }
 
     pub fn add_header(mut self, key: &str, value: &str) -> Self {
