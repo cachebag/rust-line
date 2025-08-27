@@ -5,6 +5,7 @@ use tokio::{
     net::TcpStream,
 };
 
+// TODO: Refactor to pass a port into a test 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn integration_load_test() {
     tokio::spawn(async {
