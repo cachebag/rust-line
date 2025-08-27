@@ -10,17 +10,18 @@ A minimal HTTP server built from scratch in Rust
 - `GET /files` - Returns content of a specified file
 
 ## Performance (WIP)
-`perf.sh` will use `wrk` to run a performance test on the server. It runs 100 connections on 8 threads.
+`perf.sh` will use `wrk` to run a performance test on the server. It runs 250 connections on 10 threads. It serves `index.html`.
 ```bash
 chmod +x perf.sh
 ./perf.sh
 ```
 #### Current Benchmarks (may vary based on your machine's specs):
-- ~174,000+ requests/second
-- 544μs average response time
-- Currently handles 100 concurrent connections
+- ~100,000+ requests/second
+- ~2.4ms average response time
+- Tests 250 concurrent connections on 10 threads
+- Throughout -> 6.8MB/s
 <br>
-<img width="514" height="346" alt="image" src="https://github.com/user-attachments/assets/a8f3567e-0b1b-4cf6-abc1-c24aba776dad" />
+<img width="737" height="326" alt="image" src="https://github.com/user-attachments/assets/8f2aa02c-fe1d-4acb-9dee-dd99a8aba900" />
 
 ###### **Device Specs**: 
 <img width="625" height="531" alt="image" src="https://github.com/user-attachments/assets/c44c6a65-9c34-406b-b37d-25faa3e5a338" />
