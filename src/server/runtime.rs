@@ -37,11 +37,13 @@ pub async fn run() -> Result<(), Box<dyn Error>> {
     }
 
     let mut port = "8080".to_string(); // default port 
+    let mut used_default_port = true;
 
     match args[1].as_str() {
         "dir" | "directory" => {
             if args.len() >= 4 {
                 port = args[3].clone();
+                used_default_port = false;
             }
             let dir = if args.len() >= 3 {
                 args[2].clone()
@@ -50,17 +52,26 @@ pub async fn run() -> Result<(), Box<dyn Error>> {
             };
             let addr = format!("127.0.0.1:{port}");
             let server = Server::new_with_directory(dir.clone());
-            let label = format!("In directory: {dir}");
+            let label = if used_default_port {
+                format!("In directory: {dir} (default port: {port})")
+            } else {
+                format!("In directory: {dir}")
+            };
             run_server!(server, addr, label);
         }
 
         "ns" => {
             if args.len() >= 3 {
                 port = args[2].clone();
+                used_default_port = false;
             }
             let addr = format!("127.0.0.1:{port}");
             let server = Server::new();
-            let label = String::from("Serving with no specified directory");
+            let label = if used_default_port {
+                String::from("Serving with no specified directory (default port 8080)")
+            } else {
+                String::from("Serving with no specified directory")
+            };
             run_server!(server, addr, label);
         }
 
