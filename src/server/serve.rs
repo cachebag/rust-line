@@ -1,12 +1,12 @@
 // src/server/serve.rs
 
 // use crate::error::RequestParseError;
-use crate::http::{Parser, Response, Method};
-use std::{io::Result};
+use crate::http::{Method, Parser, Response};
+use std::io::Result;
+use std::path::Path;
 use std::time::Instant;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
-use std::path::Path;
 
 #[derive(Clone)]
 pub struct Server {
@@ -64,7 +64,7 @@ impl Server {
                                 } else {
                                     let mut text = String::from(arg);
                                     text.push('\n');
-                                    Response::ok(200,text)
+                                    Response::ok(200, text)
                                 }
                             } else {
                                 match rest {
@@ -139,18 +139,16 @@ impl Server {
         match tokio::fs::read_to_string(&full_path).await {
             Ok(contents) => {
                 // println!("File contents: {contents}")
-                Response::ok(200, contents)
-                    .content_type("application/octet-stream")
+                Response::ok(200, contents).content_type("application/octet-stream")
             }
             Err(e) => {
                 eprintln!("Failed to read file: {e}");
                 Response::not_found()
             }
         }
-    
     }
 
-    pub async fn create_file(&self, file_path: &str,  body: String) -> Response {
+    pub async fn create_file(&self, file_path: &str, body: String) -> Response {
         let base_dir = self.directory.as_deref().unwrap_or(".");
         let full_path = Path::new(base_dir).join(file_path);
 
