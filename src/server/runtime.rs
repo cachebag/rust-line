@@ -1,7 +1,7 @@
 use crate::server::serve::Server;
-use tokio::net::TcpListener;
 use std::env;
 use std::error::Error;
+use tokio::net::TcpListener;
 
 const USAGE: &str = r#"
 USAGE: cargo run <command> [args]
@@ -86,4 +86,3 @@ pub async fn run() -> Result<(), Box<dyn Error>> {
         }
     }
 }
-
