@@ -28,4 +28,3 @@ kill $SERVER_PID
 wait $SERVER_PID 2>/dev/null
 
 echo "Done."
-
