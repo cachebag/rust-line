@@ -1,15 +1,19 @@
-use rustline::server::runtime::run;
+use rustline::server::{Config, Mode, run_with};
 use std::time::Duration;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpStream,
 };
 
-// TODO: Refactor to pass a port into a test
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn integration_load_test() {
+    let cfg = Config {
+        mode: Mode::NoDir,
+        port: 9000,
+        directory: None,
+    };
     tokio::spawn(async {
-        run("127.0.0.1:8080".to_string()).await.unwrap();
+        run_with(cfg).await.unwrap();
     });
     tokio::time::sleep(Duration::from_secs(1)).await;
 
